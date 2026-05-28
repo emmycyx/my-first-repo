@@ -1,0 +1,32 @@
+name: 每日AI&DC新闻推送
+
+on:
+  schedule:
+    # 每天早上 8:00 (UTC+8) = 凌晨 0:00 UTC
+    - cron: "0 0 * * *"
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  daily-news:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 运行新闻抓取与推送
+        env:
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          SENDKEY: ${{ secrets.SENDKEY }}
+        run: python daily_news.py
+
+      - name: 提交 HTML 存档
+        run: |
+          git config user.name "daily-news-bot"
+          git config user.email "bot@localhost"
+          git add archive/
+          git diff --cached --quiet || git commit -m "📄 存档 $(date +%Y-%m-%d)"
+          git push
