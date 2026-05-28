@@ -136,7 +136,8 @@ def safe_text(val: Any) -> str:
 # ─── 格式化器 ────────────────────────────────────────────────────────────
 
 def build_markdown(articles: list[dict[str, Any]], date_str: str) -> str:
-    lines = [f"# 📡 每日AI&DC新闻 · {date_str}\n"]
+    """生成简洁版 Markdown（适配 WeChat 模板消息限制）"""
+    lines = [f"📡 每日AI&DC新闻 · {date_str}\n"]
     current_cat = None
     order = ["AI基建投资", "AI芯片/算力", "大模型竞赛", "AI行业应用", "投融资", "政策监管", "AI行业动态"]
 
@@ -152,23 +153,17 @@ def build_markdown(articles: list[dict[str, Any]], date_str: str) -> str:
         cat = a.get("_category", "AI行业动态")
         region = a.get("_region", "")
         title = safe_text(a.get("title"))
-        desc = truncate(safe_text(a.get("description")), 150)
         url = safe_text(a.get("url"))
 
         if cat != current_cat:
             current_cat = cat
-            lines.append(f"\n---\n### {cat}\n")
+            lines.append(f"\n• {cat}")
 
-        line_parts = [f"**{i}. {title}**"]
-        if region:
-            line_parts.append(f"  {region}")
-        if desc:
-            line_parts.append(f"  > {desc[:80]}{'…' if len(desc) > 80 else ''}")
-        if url:
-            line_parts.append(f"  [🔗 原文]({url})")
-        lines.append("  \n".join(line_parts) + "\n")
+        short_title = title[:50] + "…" if len(title) > 50 else title
+        tag = "🌏" if "海外" in region else "🇨🇳"
+        lines.append(f"  {i}. {tag} {short_title}")
 
-    lines.append(f"\n---\n*⏱ {datetime.now(UTC8).strftime('%H:%M')} 自动生成*")
+    lines.append(f"\n⏱ {datetime.now(UTC8).strftime('%H:%M')} 自动生成")
     return "\n".join(lines)
 
 
@@ -328,7 +323,7 @@ def main():
     # Step 5: 生成 Markdown + 存档链接
     archive_url = f"https://raw.githubusercontent.com/emmycyx/my-first-repo/main/archive/{date_str}.html"
     md = build_markdown(articles, date_str)
-    md += f"\n\n[📖 查看完整图文版]({archive_url})"
+    md += f"\n\n📖 完整版: {archive_url}"
     title = f"📡 每日AI&DC新闻 · {date_str}"
 
     # Step 6: 生成 HTML 存档
