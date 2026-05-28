@@ -245,6 +245,7 @@ def build_html(articles: list[dict[str, Any]], date_str: str) -> str:
 # ─── Server酱 推送 ───────────────────────────────────────────────────────
 
 def push_wechat(sendkey: str, title: str, content_md: str) -> bool:
+    sendkey = sendkey.strip()  # 防止 Secret 末尾带空格/换行
     url = SERVERCHAN_URL.format(sendkey=sendkey)
     payload = json.dumps({"title": title, "desp": content_md}).encode("utf-8")
     try:
@@ -275,10 +276,14 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="仅生成，不推送")
     args = parser.parse_args()
 
-    if not args.newsapi_key:
+    if args.newsapi_key:
+        args.newsapi_key = args.newsapi_key.strip()
+    else:
         log("❌ 需要 --newsapi-key 或环境变量 NEWSAPI_KEY")
         sys.exit(1)
-    if not args.sendkey and not args.dry_run:
+    if args.sendkey:
+        args.sendkey = args.sendkey.strip()
+    elif not args.dry_run:
         log("❌ 需要 --sendkey 或环境变量 SENDKEY")
         sys.exit(1)
 
