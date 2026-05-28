@@ -161,14 +161,14 @@ def build_markdown(articles: list[dict[str, Any]], date_str: str) -> str:
 
         line_parts = [f"**{i}. {title}**"]
         if region:
-            line_parts.append(f"  *{region}*")
+            line_parts.append(f"  {region}")
         if desc:
-            line_parts.append(f"  > {desc}")
+            line_parts.append(f"  > {desc[:80]}{'…' if len(desc) > 80 else ''}")
         if url:
-            line_parts.append(f"  [🔗 阅读原文]({url})")
+            line_parts.append(f"  [🔗 原文]({url})")
         lines.append("  \n".join(line_parts) + "\n")
 
-    lines.append(f"\n---\n*⏱ {datetime.now(UTC8).strftime('%H:%M')} 自动生成 | 来源: NewsAPI*")
+    lines.append(f"\n---\n*⏱ {datetime.now(UTC8).strftime('%H:%M')} 自动生成*")
     return "\n".join(lines)
 
 
@@ -244,10 +244,11 @@ def build_html(articles: list[dict[str, Any]], date_str: str) -> str:
 
 # ─── Server酱 推送 ───────────────────────────────────────────────────────
 
-def push_wechat(sendkey: str, title: str, content_md: str) -> bool:
-    sendkey = sendkey.strip()  # 防止 Secret 末尾带空格/换行
+def push_wechat(sendkey: str, title: str, content_md: str, date_str: str = "") -> bool:
+    sendkey = sendkey.strip()
+    short = f"📡 {date_str} AI&DC新闻简报"
     url = SERVERCHAN_URL.format(sendkey=sendkey)
-    payload = json.dumps({"title": title, "desp": content_md}).encode("utf-8")
+    payload = json.dumps({"title": title, "desp": content_md, "short": short}).encode("utf-8")
     try:
         req = urllib.request.Request(
             url, data=payload,
@@ -324,8 +325,10 @@ def main():
     articles = all_articles[:MAX_RESULTS]
     log(f"📋 精选 TOP {len(articles)} 条")
 
-    # Step 5: 生成 Markdown
+    # Step 5: 生成 Markdown + 存档链接
+    archive_url = f"https://raw.githubusercontent.com/emmycyx/my-first-repo/main/archive/{date_str}.html"
     md = build_markdown(articles, date_str)
+    md += f"\n\n[📖 查看完整图文版]({archive_url})"
     title = f"📡 每日AI&DC新闻 · {date_str}"
 
     # Step 6: 生成 HTML 存档
@@ -343,7 +346,7 @@ def main():
         return
 
     log("📤 推送到微信...")
-    success = push_wechat(args.sendkey, title, md)
+    success = push_wechat(args.sendkey, title, md, date_str)
 
     if not success:
         sys.exit(1)
